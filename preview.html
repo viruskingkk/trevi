@@ -1,0 +1,2654 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuboard GitOps 專案管理工具</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-surface: #161b22;
+    --bg-card: #1c2128;
+    --bg-input: #0d1117;
+    --border: #30363d;
+    --border-focus: #388bfd;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --accent: #1f6feb;
+    --accent-hover: #388bfd;
+    --success: #238636;
+    --success-text: #3fb950;
+    --warn: #9e6a03;
+    --warn-text: #d29922;
+    --danger: #8d1a1a;
+    --danger-text: #f85149;
+    --tag-bg: #21262d;
+    --radius: 6px;
+    --radius-lg: 10px;
+    --font: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .topbar {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #1f6feb, #58a6ff);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: white; font-family: var(--font);
+  }
+  .topbar-sep { flex: 1; }
+  .badge {
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #1f3a5f;
+    color: #58a6ff;
+    border: 1px solid #1f6feb44;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-num.done { background: var(--success); }
+  .step-num.disabled { background: var(--tag-bg); color: var(--text-dim); }
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .field label .req { color: var(--danger-text); }
+  .field label .opt {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-dim);
+    background: var(--tag-bg);
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  input[type="text"], input[type="password"], select, textarea {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font-ui);
+    padding: 8px 10px;
+    width: 100%;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(31,111,235,0.1);
+  }
+  input::placeholder { color: var(--text-dim); }
+  select option { background: var(--bg-card); }
+  .env-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .env-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .env-tag:hover { border-color: var(--border-focus); color: var(--text); }
+  .env-tag.selected {
+    background: #1f3a5f;
+    border-color: var(--accent);
+    color: #58a6ff;
+  }
+  .env-tag.env-dev.selected { background: #1e2e1e; border-color: #238636; color: #3fb950; }
+  .env-tag.env-stage.selected { background: #1f3a5f; border-color: #1f6feb; color: #58a6ff; }
+  .env-tag.env-uat.selected { background: #2b1e1e; border-color: #8d3a0a; color: #d29922; }
+  .env-tag.env-gli.selected { background: #27202b; border-color: #6e40c9; color: #bc8cff; }
+  .env-tag.env-prod.selected { background: #2b1e1e; border-color: var(--danger); color: var(--danger-text); }
+  .env-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+  .path-preview {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .path-preview .hl { color: #58a6ff; }
+  .path-preview .arrow { color: var(--text-dim); margin: 0 6px; }
+  .config-preview {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-family: var(--font);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 240px;
+    overflow-y: auto;
+    margin: 10px 0;
+  }
+  .config-preview .added { color: #3fb950; }
+  .config-preview .key { color: #79c0ff; }
+  .config-preview .val { color: #a5d6ff; }
+  .config-preview .str { color: #a8d8b5; }
+  .config-preview .comment { color: var(--text-dim); }
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .btn-outline:hover { background: var(--tag-bg); border-color: var(--text-muted); }
+  .btn-success {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+  }
+  .btn-success:hover { background: #2ea043; }
+  .btn-danger {
+    background: #da3633;
+    color: white;
+    border-color: #da3633;
+  }
+  .btn-danger:hover { background: #f85149; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .alert-info { background: #1f3a5f22; border: 1px solid #1f6feb55; color: #58a6ff; }
+  .alert-success { background: #1c3a1c; border: 1px solid #238636; color: #3fb950; }
+  .alert-warn { background: #2b1e0e; border: 1px solid #9e6a03; color: #d29922; }
+  .alert-danger { background: #2b1010; border: 1px solid #8d1a1a; color: #f85149; }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+  .tag-blue { background: #1f3a5f; color: #58a6ff; }
+  .tag-green { background: #1c2e1c; color: #3fb950; }
+  .tag-yellow { background: #2b2000; color: #d29922; }
+  .tag-red { background: #2b1010; color: #f85149; }
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent-hover); border-bottom-color: var(--accent-hover); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .file-diff {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .file-diff-header {
+    background: var(--tag-bg);
+    padding: 8px 14px;
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .file-diff-body {
+    background: var(--bg);
+    padding: 12px 14px;
+    font-family: var(--font);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .diff-add { color: #3fb950; }
+  .diff-ctx { color: var(--text-muted); }
+  .diff-file { color: #58a6ff; }
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: var(--font);
+    font-size: 12px;
+    line-height: 1.8;
+    max-height: 200px;
+    overflow-y: auto;
+    color: var(--text-muted);
+  }
+  .log-ok { color: #3fb950; }
+  .log-info { color: #58a6ff; }
+  .log-warn { color: #d29922; }
+  .log-err { color: #f85149; }
+  .info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--text-muted); }
+  .info-val { font-family: var(--font); font-size: 12px; color: var(--text); }
+  #config-diff-area { display: none; }
+  .collapse-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    font-family: var(--font-ui);
+  }
+  .collapse-toggle:hover { color: var(--text); }
+  .arrow-icon { transition: transform 0.2s; display: inline-block; }
+  .arrow-icon.open { transform: rotate(90deg); }
+  .section-gap { margin-bottom: 28px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">KG</div>
+    Kuboard GitOps
+  </div>
+  <div class="topbar-sep"></div>
+  <span class="badge" id="gitlab-status">⬤ 未連線</span>
+</div>
+
+<div class="container">
+
+  <!-- Step 0: GitLab Connection -->
+  <div class="section-gap">
+    <div class="section-title">GitLab 連線設定</div>
+    <div class="card">
+      <div class="card-header">
+        <div class="step-num" id="s0-num">0</div>
+        <div>
+          <div class="card-title">GitLab 認證</div>
+          <div class="card-subtitle">設定 Private Token 以連接私有 GitLab</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>GitLab 網址 <span class="req">*</span></label>
+          <input type="text" id="gl-url" value="https://git.trevi.cc" placeholder="https://git.example.com">
+        </div>
+        <div class="field">
+          <label>Private Access Token <span class="req">*</span></label>
+          <input type="password" id="gl-token" placeholder="glpat-xxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>Namespace / Group</label>
+          <input type="text" id="gl-ns" value="hi_devops" placeholder="group/subgroup">
+        </div>
+        <div class="field">
+          <label>Repository 名稱</label>
+          <input type="text" id="gl-repo" value="kuboard_gitops" placeholder="repo-name">
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="testConnection()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+          測試連線
+        </button>
+        <span id="conn-msg" style="font-size:12px; color:var(--text-muted)"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Tabs -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('clone')">📋 專案複製</div>
+    <div class="tab" onclick="switchTab('env')">🌍 環境複製</div>
+    <div class="tab" onclick="switchTab('config')">⚙️ Config 修改</div>
+    <div class="tab" onclick="switchTab('deploy')">🚀 部署執行</div>
+  </div>
+
+  <!-- Tab: Clone Project -->
+  <div id="tab-clone" class="tab-content active">
+    <div class="card">
+      <div class="card-header">
+        <div class="step-num">1</div>
+        <div>
+          <div class="card-title">複製來源專案</div>
+          <div class="card-subtitle">從現有 game_project 複製並建立新專案</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>來源專案 <span class="req">*</span></label>
+          <select id="src-project" onchange="updatePaths()">
+            <option value="">— 選擇來源專案 —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>新專案 ID <span class="req">*</span></label>
+          <input type="text" id="new-project" placeholder="例如 tg140" oninput="updatePaths()">
+        </div>
+      </div>
+      <div id="path-preview-clone" class="path-preview" style="display:none"></div>
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:8px">選擇要保留的環境</div>
+      <div class="env-grid" id="env-selector">
+        <div class="env-tag env-dev" data-env="dev" onclick="toggleEnv(this)"><span class="env-dot"></span>dev</div>
+        <div class="env-tag env-stage selected" data-env="stage" onclick="toggleEnv(this)"><span class="env-dot"></span>stage</div>
+        <div class="env-tag env-uat selected" data-env="uat" onclick="toggleEnv(this)"><span class="env-dot"></span>uat</div>
+        <div class="env-tag env-gli" data-env="gli" onclick="toggleEnv(this)"><span class="env-dot"></span>gli</div>
+        <div class="env-tag env-prod selected" data-env="prod" onclick="toggleEnv(this)"><span class="env-dot"></span>prod</div>
+      </div>
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:8px">Script 下載（多平台支援）</div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="downloadScript('sh')">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Linux / macOS (.sh)
+        </button>
+        <button class="btn btn-outline" onclick="downloadScript('ps1')">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Windows (.ps1)
+        </button>
+        <button class="btn btn-outline" onclick="downloadScript('bat')">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Windows (.bat)
+        </button>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary" onclick="doCloneProject()" id="btn-clone">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          執行複製
+        </button>
+      </div>
+    </div>
+    <div id="clone-result" style="display:none"></div>
+  </div>
+
+  <!-- Tab: Clone Env -->
+  <div id="tab-env" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <div class="step-num">2</div>
+        <div>
+          <div class="card-title">複製環境 overlay</div>
+          <div class="card-subtitle">在現有專案內複製一個環境到另一個環境</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>目標專案 <span class="req">*</span></label>
+          <select id="env-project" onchange="updateEnvPaths()">
+            <option value="">— 選擇專案 —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>來源環境 <span class="req">*</span></label>
+          <select id="src-env" onchange="updateEnvPaths()">
+            <option value="stage">stage</option>
+            <option value="uat">uat</option>
+            <option value="prod">prod</option>
+            <option value="dev">dev</option>
+            <option value="gli">gli</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>目標環境 <span class="req">*</span></label>
+          <select id="dst-env" onchange="updateEnvPaths()">
+            <option value="prod">prod</option>
+            <option value="stage">stage</option>
+            <option value="uat">uat</option>
+            <option value="dev">dev</option>
+            <option value="gli">gli</option>
+          </select>
+        </div>
+      </div>
+      <div id="path-preview-env" class="path-preview" style="display:none"></div>
+      <hr class="divider">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="doCloneEnv()" id="btn-clone-env">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          複製環境
+        </button>
+      </div>
+    </div>
+    <div id="env-result" style="display:none"></div>
+  </div>
+
+  <!-- Tab: Config Edit -->
+  <div id="tab-config" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <div class="step-num">3</div>
+        <div>
+          <div class="card-title">Stage Config 修改（含英文名稱與縮寫）</div>
+          <div class="card-subtitle">修改三個 config.yaml 中的 tidb / games / gi_backend 設定</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>目標專案 <span class="req">*</span></label>
+          <select id="cfg-project" onchange="loadConfigPreview()">
+            <option value="">— 選擇專案 —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>環境 <span class="req">*</span></label>
+          <select id="cfg-env" onchange="loadConfigPreview()">
+            <option value="stage">stage</option>
+            <option value="uat">uat</option>
+            <option value="prod">prod</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>專案英文全名 <span class="req">*</span> <span class="opt">用於 name / Room</span></label>
+          <input type="text" id="cfg-fullname" placeholder="例如 Chicky Mines" oninput="updateConfigPreview()">
+        </div>
+        <div class="field">
+          <label>遊戲縮寫碼 <span class="req">*</span> <span class="opt">4字大寫</span></label>
+          <input type="text" id="cfg-abbr" placeholder="例如 CKMN" oninput="updateConfigPreview()" style="text-transform:uppercase">
+        </div>
+      </div>
+      <div class="alert alert-info" style="margin-top:12px">
+        <svg class="alert-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>將在 pp 專案的以下三個 config 新增條目（以來源 pp 的 tg115 / bkgl 為模板）：<br>
+        <code style="font-size:11px; opacity:0.8">backend-console-api-backend</code> ·
+        <code style="font-size:11px; opacity:0.8">cerberus-backend-api-backend</code> ·
+        <code style="font-size:11px; opacity:0.8">game-backend-api-backend</code>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:8px">預覽修改內容</div>
+      <div id="config-diff-area">
+        <div class="tab-bar" style="margin-bottom:12px">
+          <div class="tab active" onclick="switchCfgTab('backend-console')">backend-console-api</div>
+          <div class="tab" onclick="switchCfgTab('cerberus')">cerberus-backend-api</div>
+          <div class="tab" onclick="switchCfgTab('game-backend')">game-backend-api</div>
+        </div>
+        <div id="cfgtab-backend-console" class="tab-content active">
+          <div class="file-diff">
+            <div class="file-diff-header">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="diff-file">game_project/pp/game_project/overlays/stage/backend-console-api-backend/conf/config.yaml</span>
+            </div>
+            <div class="file-diff-body" id="diff-console"></div>
+          </div>
+        </div>
+        <div id="cfgtab-cerberus" class="tab-content">
+          <div class="file-diff">
+            <div class="file-diff-header">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="diff-file">game_project/pp/game_project/overlays/stage/cerberus-backend-api-backend/conf/config.yaml</span>
+            </div>
+            <div class="file-diff-body" id="diff-cerberus"></div>
+          </div>
+        </div>
+        <div id="cfgtab-game-backend" class="tab-content">
+          <div class="file-diff">
+            <div class="file-diff-header">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="diff-file">game_project/pp/game_project/overlays/stage/game-backend-api-backend/conf/config.yaml</span>
+            </div>
+            <div class="file-diff-body" id="diff-game"></div>
+          </div>
+        </div>
+      </div>
+      <div id="config-empty" style="color:var(--text-dim); font-size:13px; padding:8px 0">填入專案名稱與縮寫後可預覽修改內容</div>
+      <hr class="divider">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="applyConfigChanges()" id="btn-apply-config" disabled>
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          確認並推送到 GitLab
+        </button>
+        <button class="btn btn-outline" onclick="loadConfigPreview()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          從 GitLab 讀取
+        </button>
+      </div>
+    </div>
+    <div id="config-result" style="display:none"></div>
+  </div>
+
+  <!-- Tab: Deploy -->
+  <div id="tab-deploy" class="tab-content">
+
+    <!-- Kuboard YAML Download -->
+    <div class="card">
+      <div class="card-header">
+        <div class="step-num">4</div>
+        <div>
+          <div class="card-title">下載 Kuboard YAML</div>
+          <div class="card-subtitle">從 GitLab 讀取 kustomize overlay，輸出完整 Kubernetes manifest 可直接貼入 Kuboard「Create from YAML」</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>目標專案 <span class="req">*</span></label>
+          <select id="yaml-project" onchange="updateYamlEnvBtns()">
+            <option value="">— 選擇專案 —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Harbor Image Tag <span class="opt">選填，留空使用 GitLab 原始 tag</span></label>
+          <input type="text" id="yaml-image-tag" placeholder="例如 latest 或 20260601-abc123">
+        </div>
+      </div>
+      <div class="alert alert-info" style="margin-top:12px">
+        <svg class="alert-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>輸出內容包含：<b>Namespace</b> · <b>Deployment</b>（含 patch 合併）· <b>Service</b> · <b>ConfigMap</b>（env + conf）· <b>Secret</b> · <b>Ingress</b>（如有）<br>
+        每個環境分開一個 YAML 檔，多個 resource 用 <code style="font-size:11px">---</code> 分隔</div>
+      </div>
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:10px">選擇環境下載</div>
+      <div id="yaml-env-btns" class="btn-row" style="flex-wrap:wrap; gap:8px">
+        <span style="font-size:12px;color:var(--text-dim)">請先選擇專案並連線 GitLab</span>
+      </div>
+      <div id="yaml-progress" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Pipeline / Script -->
+    <div class="card">
+      <div class="card-header">
+        <div class="step-num" style="background:var(--tag-bg);color:var(--text-dim)">5</div>
+        <div>
+          <div class="card-title">CI/CD 部署觸發</div>
+          <div class="card-subtitle">觸發 GitLab Pipeline 或下載 kubectl apply 腳本</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>目標專案</label>
+          <select id="dep-project">
+            <option value="">— 選擇專案 —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>目標環境</label>
+          <select id="dep-env">
+            <option value="stage">stage</option>
+            <option value="uat">uat</option>
+            <option value="prod">prod</option>
+          </select>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="triggerPipeline()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          觸發 GitLab Pipeline
+        </button>
+        <button class="btn btn-outline" onclick="downloadDeployScript()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          下載部署腳本
+        </button>
+      </div>
+    </div>
+
+    <!-- ArgoCD Application YAML -->
+    <div class="card">
+      <div class="card-header">
+        <div class="step-num" style="background:linear-gradient(135deg,#6e40c9,#bc8cff);color:white">Argo</div>
+        <div>
+          <div class="card-title">產生 ArgoCD Application YAML</div>
+          <div class="card-subtitle">新專案複製完成後，在 ArgoCD 建立 Application 讓 GitLab → ArgoCD → Kuboard 全自動同步</div>
+        </div>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:14px">
+        <svg class="alert-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>每個環境會產生一份 ArgoCD Application，apply 到 ArgoCD 所在的 cluster 後，後續 GitLab push 即自動 sync 到 Kuboard，不需再手動下載 YAML 部署。</div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>目標專案 <span class="req">*</span></label>
+          <select id="argo-project" onchange="updateArgoPreview()">
+            <option value="">— 選擇專案 —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ArgoCD 所在 Namespace</label>
+          <input type="text" id="argo-ns" value="argocd" oninput="updateArgoPreview()">
+        </div>
+        <div class="field">
+          <label>GitLab Repo URL <span class="opt">自動帶入</span></label>
+          <input type="text" id="argo-repo-url" placeholder="https://git.trevi.cc/hi_devops/kuboard_gitops.git" oninput="updateArgoPreview()">
+        </div>
+        <div class="field">
+          <label>目標 Cluster Server</label>
+          <input type="text" id="argo-cluster" value="https://kubernetes.default.svc" oninput="updateArgoPreview()">
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:10px">選擇要建立的環境</div>
+      <div id="argo-env-btns" class="env-grid">
+        <div class="env-tag env-stage selected" data-aenv="stage" onclick="this.classList.toggle('selected');updateArgoPreview()"><span class="env-dot"></span>stage</div>
+        <div class="env-tag env-uat selected" data-aenv="uat" onclick="this.classList.toggle('selected');updateArgoPreview()"><span class="env-dot"></span>uat</div>
+        <div class="env-tag env-prod selected" data-aenv="prod" onclick="this.classList.toggle('selected');updateArgoPreview()"><span class="env-dot"></span>prod</div>
+        <div class="env-tag env-dev" data-aenv="dev" onclick="this.classList.toggle('selected');updateArgoPreview()"><span class="env-dot"></span>dev</div>
+        <div class="env-tag env-gli" data-aenv="gli" onclick="this.classList.toggle('selected');updateArgoPreview()"><span class="env-dot"></span>gli</div>
+      </div>
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:8px">預覽</div>
+      <div id="argo-preview" class="config-preview" style="max-height:280px;font-size:11px;color:var(--text-muted)">選擇專案後自動產生...</div>
+      <hr class="divider">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="downloadArgoYaml()" id="btn-argo-dl">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          下載 ArgoCD Application YAML
+        </button>
+        <button class="btn btn-outline" onclick="applyArgoYaml()" id="btn-argo-apply">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          直接 Push 到 GitLab argocd/ 目錄
+        </button>
+      </div>
+      <div id="argo-result" style="margin-top:12px"></div>
+    </div>
+
+    <div id="deploy-result" style="display:none"></div>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = () => document.getElementById('gl-url').value.replace(/\/$/,'');
+const TOKEN = () => document.getElementById('gl-token').value;
+const NS = () => document.getElementById('gl-ns').value;
+const REPO = () => document.getElementById('gl-repo').value;
+const PROJECT_PATH = () => `${NS()}/${REPO()}`;
+const PROJ_ID = () => encodeURIComponent(PROJECT_PATH());
+
+let glProjectNumId = null;
+let knownProjects = [];
+let fileCache = {};
+
+async function glFetch(path, opts={}) {
+  const url = `${API_BASE()}/api/v4${path}`;
+  const headers = {
+    'PRIVATE-TOKEN': TOKEN(),
+    ...(opts.headers || {})
+  };
+  if (opts.body && !(opts.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(url, { ...opts, headers });
+  const contentType = res.headers.get('content-type') || '';
+  const bodyText = await res.text();
+  if (!res.ok) throw new Error(`GitLab API ${res.status}: ${bodyText}`);
+  if (!bodyText) return null;
+  if (contentType.includes('application/json')) {
+    try { return JSON.parse(bodyText); } catch(e) { return bodyText; }
+  }
+  // GitLab raw file API returns text/yaml, not JSON. Keep it as plain text.
+  return bodyText;
+}
+
+async function testConnection() {
+  const btn = event.target.closest('button');
+  const msg = document.getElementById('conn-msg');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 連線中...';
+  msg.textContent = '';
+  try {
+    const data = await glFetch(`/projects/${PROJ_ID()}`);
+    glProjectNumId = data.id;
+    document.getElementById('gitlab-status').textContent = '⬤ 已連線';
+    document.getElementById('gitlab-status').style.color = '#3fb950';
+    msg.style.color = '#3fb950';
+    msg.textContent = `✓ 連線成功：${data.name_with_namespace}`;
+    await loadProjectList();
+  } catch(e) {
+    msg.style.color = '#f85149';
+    msg.textContent = `✗ ${e.message}`;
+  }
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>測試連線`;
+}
+
+async function loadProjectList() {
+  try {
+    const items = await glFetch(`/projects/${PROJ_ID()}/repository/tree?path=game_project&per_page=100`);
+    knownProjects = items.filter(i=>i.type==='tree').map(i=>i.name).sort();
+    ['src-project','env-project','cfg-project','dep-project','yaml-project','argo-project'].forEach(id=>{
+      const sel = document.getElementById(id);
+      const cur = sel.value;
+      sel.innerHTML = `<option value="">— 選擇專案 —</option>` +
+        knownProjects.map(p=>`<option value="${p}"${p===cur?' selected':''}>${p}</option>`).join('');
+    });
+  } catch(e) {
+    console.error('loadProjectList', e);
+  }
+  // Sync ArgoCD repo URL
+  setTimeout(syncArgoRepoUrl, 100);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-bar .tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['clone','env','config','deploy'][i]===name);
+  });
+  document.querySelectorAll('.tab-content[id^="tab-"]').forEach(el=>{
+    el.classList.toggle('active', el.id===`tab-${name}`);
+  });
+}
+
+function switchCfgTab(name) {
+  document.querySelectorAll('#tab-config .tab-bar .tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['backend-console','cerberus','game-backend'][i]===name);
+  });
+  ['backend-console','cerberus','game-backend'].forEach(n=>{
+    const el = document.getElementById(`cfgtab-${n}`);
+    if(el) el.classList.toggle('active', n===name);
+  });
+}
+
+function toggleEnv(el) {
+  el.classList.toggle('selected');
+}
+
+function getSelectedEnvs() {
+  return [...document.querySelectorAll('#env-selector .env-tag.selected')].map(e=>e.dataset.env);
+}
+
+function updatePaths() {
+  const src = document.getElementById('src-project').value;
+  const dst = document.getElementById('new-project').value.trim();
+  const el = document.getElementById('path-preview-clone');
+  if(!src&&!dst){el.style.display='none';return;}
+  const base = `${API_BASE()}/${NS()}/${REPO()}/-/tree/main/game_project/`;
+  el.style.display='block';
+  el.innerHTML = `<span class="hl">${base}<b>${src||'?'}</b></span><span class="arrow">→</span><span class="hl">${base}<b>${dst||'?'}</b></span>`;
+}
+
+function updateEnvPaths() {
+  const proj = document.getElementById('env-project').value;
+  const src = document.getElementById('src-env').value;
+  const dst = document.getElementById('dst-env').value;
+  const el = document.getElementById('path-preview-env');
+  if(!proj){el.style.display='none';return;}
+  const base = `${API_BASE()}/${NS()}/${REPO()}/-/tree/main/game_project/${proj}/game_project/overlays/`;
+  el.style.display='block';
+  el.innerHTML = `<span class="hl">${base}<b>${src}</b></span><span class="arrow">→</span><span class="hl">${base}<b>${dst}</b></span>`;
+}
+
+// --- Clone Project via GitLab API ---
+async function doCloneProject() {
+  const src = document.getElementById('src-project').value;
+  const dst = document.getElementById('new-project').value.trim().toLowerCase();
+  const envs = getSelectedEnvs();
+  if(!src||!dst){alert('請填入來源專案和新專案 ID');return;}
+  if(!glProjectNumId){alert('請先測試 GitLab 連線');return;}
+  if(knownProjects.includes(dst)){alert(`專案 ${dst} 已存在！`);return;}
+
+  const btn = document.getElementById('btn-clone');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 複製中...';
+
+  const resultEl = document.getElementById('clone-result');
+  resultEl.style.display='block';
+  resultEl.innerHTML = renderProgress('正在讀取來源檔案結構...', 10);
+
+  try {
+    // Get all files from src project
+    const allFiles = await getAllFiles(`game_project/${src}`);
+    resultEl.innerHTML = renderProgress(`讀取到 ${allFiles.length} 個檔案，開始複製...`, 30);
+
+    const allEnvs = ['dev','stage','uat','gli','prod'];
+    const removeEnvs = allEnvs.filter(e=>!envs.includes(e));
+
+    let processed = 0;
+    const total = allFiles.length;
+    const actions = [];
+
+    for(const file of allFiles) {
+      // Skip unwanted env dirs
+      const skip = removeEnvs.some(env=>{
+        const p = file.path.replace(`game_project/${src}/game_project/overlays/`,'');
+        return p.startsWith(env+'/') || p===env;
+      });
+      if(skip) continue;
+
+      const newPath = file.path.replace(`game_project/${src}`, `game_project/${dst}`);
+      let content = await getFileContent(file.path);
+      // Preserve image lines: replace project name everywhere EXCEPT inside image: lines
+      content = content.split('\n').map(line => {
+        if (/^\s*image:\s*\S+/.test(line)) return line;
+        return line.split(src).join(dst);
+      }).join('\n');
+      // Remove nodePort lines
+      content = content.split('\n').filter(l=>!l.trim().startsWith('nodePort:')).join('\n');
+      actions.push({action:'create', file_path: newPath, content, encoding:'text'});
+      processed++;
+      if(processed%10===0) {
+        resultEl.innerHTML = renderProgress(`處理 ${processed}/${total} 個檔案...`, 30+Math.round(processed/total*50));
+      }
+    }
+
+    resultEl.innerHTML = renderProgress(`提交 ${actions.length} 個檔案到 GitLab...`, 85);
+
+    // Commit all files
+    await glFetch(`/projects/${glProjectNumId}/repository/commits`, {
+      method:'POST',
+      body: JSON.stringify({
+        branch: 'main',
+        commit_message: `[scaffold] Add project ${dst} (copied from ${src})`,
+        actions
+      })
+    });
+
+    resultEl.innerHTML = renderSuccess(`專案 <b>${dst}</b> 複製完成！共 ${actions.length} 個檔案。`,
+      `${API_BASE()}/${NS()}/${REPO()}/-/tree/main/game_project/${dst}`);
+    await loadProjectList();
+  } catch(e) {
+    resultEl.innerHTML = renderError(e.message);
+  }
+  btn.disabled=false;
+  btn.innerHTML=`<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>執行複製`;
+}
+
+// --- Clone Env ---
+async function doCloneEnv() {
+  const proj = document.getElementById('env-project').value;
+  const src = document.getElementById('src-env').value;
+  const dst = document.getElementById('dst-env').value;
+  if(!proj){alert('請選擇專案');return;}
+  if(src===dst){alert('來源和目標環境不能相同');return;}
+  if(!glProjectNumId){alert('請先測試 GitLab 連線');return;}
+
+  const btn = document.getElementById('btn-clone-env');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 複製中...';
+
+  const resultEl = document.getElementById('env-result');
+  resultEl.style.display='block';
+  resultEl.innerHTML = renderProgress('讀取環境檔案...', 20);
+
+  try {
+    const srcPath = `game_project/${proj}/game_project/overlays/${src}`;
+    const allFiles = await getAllFiles(srcPath);
+    resultEl.innerHTML = renderProgress(`讀取到 ${allFiles.length} 個檔案...`, 50);
+
+    const actions = [];
+    for(const file of allFiles) {
+      const newPath = file.path.replace(`/overlays/${src}/`,`/overlays/${dst}/`);
+      let content = await getFileContent(file.path);
+      content = content.split(src).join(dst);
+      actions.push({action:'create', file_path:newPath, content, encoding:'text'});
+    }
+
+    resultEl.innerHTML = renderProgress(`提交 ${actions.length} 個檔案...`, 80);
+
+    await glFetch(`/projects/${glProjectNumId}/repository/commits`, {
+      method:'POST',
+      body: JSON.stringify({
+        branch:'main',
+        commit_message:`[env] Copy overlay ${src} → ${dst} for ${proj}`,
+        actions
+      })
+    });
+
+    resultEl.innerHTML = renderSuccess(`環境 <b>${dst}</b> 複製完成！`, 
+      `${API_BASE()}/${NS()}/${REPO()}/-/tree/main/game_project/${proj}/game_project/overlays/${dst}`);
+  } catch(e) {
+    resultEl.innerHTML = renderError(e.message);
+  }
+  btn.disabled=false;
+  btn.innerHTML=`<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>複製環境`;
+}
+
+// --- Config ---
+function loadConfigPreview() { updateConfigPreview(); }
+
+function updateConfigPreview() {
+  const proj = document.getElementById('cfg-project').value;
+  const abbr = document.getElementById('cfg-abbr').value.trim().toUpperCase();
+  const fullname = document.getElementById('cfg-fullname').value.trim();
+
+  if(!abbr||!fullname) {
+    document.getElementById('config-diff-area').style.display='none';
+    document.getElementById('config-empty').style.display='block';
+    document.getElementById('btn-apply-config').disabled=true;
+    return;
+  }
+
+  document.getElementById('config-diff-area').style.display='block';
+  document.getElementById('config-empty').style.display='none';
+  document.getElementById('btn-apply-config').disabled=false;
+
+  const projId = proj || '新專案';
+  const projLower = projId.toLowerCase();
+  const env = document.getElementById('cfg-env').value;
+  const suffix = env==='stage'?'stg':(env==='uat'?'stage':'prod');
+
+  // backend-console diff
+  document.getElementById('diff-console').innerHTML = buildConsoleDiff(projLower, abbr, fullname, suffix);
+  document.getElementById('diff-cerberus').innerHTML = buildCerberusDiff(projLower, abbr, fullname, suffix);
+  document.getElementById('diff-game').innerHTML = buildGameDiff(projLower, abbr, fullname, suffix);
+}
+
+function hl(s) { return s; }
+
+function buildConsoleDiff(proj, abbr, name, suffix) {
+  return `<span class="diff-ctx"># === tidb section (host/port/username/password 從 pp config 複製) ===</span>
+<span class="diff-add">  ${proj}:
+    host: "advanced-tidb-tidb.tidb-cluster.svc.cluster.local"
+    port: 4000
+    database: "${proj}_game"
+    username: "root"
+    password: "qweasd123"
+    maxOpenConns: 100
+    maxIdleConns: 10
+    maxLifetime: "1h"</span>
+
+<span class="diff-ctx"># === games list (在最後一個 entry 後新增) ===</span>
+<span class="diff-add">      - gmcode: "${abbr}"
+        name: "${name}"
+        rooms:
+          - id: "${abbr.slice(0,2)}01"
+            name: "${name} Room 1"
+        currencies: [ "PHP" ]
+        bet_types: [ "Manual", "Auto" ]
+        game_plays: ["Grand","Major","Minor","Mini"]</span>
+
+<span class="diff-ctx"># === gi_backend section ===</span>
+<span class="diff-add">  ${abbr.toLowerCase()}:
+    base_url: "http://gi-backend-svc.${proj}-${suffix}.svc.cluster.local:8080"
+    timeout: "30s"</span>
+
+<span class="diff-ctx"># === centersvr section ===</span>
+<span class="diff-add">  ${abbr.toLowerCase()}:
+    base_url: "http://centersvr-backend-svc.${proj}-${suffix}.svc.cluster.local:8200"
+    timeout: "30s"</span>`;
+}
+
+function buildCerberusDiff(proj, abbr, name, suffix) {
+  return `<span class="diff-ctx"># === tidb section ===</span>
+<span class="diff-add">  ${proj}:
+    host: "advanced-tidb-tidb.tidb-cluster.svc.cluster.local"
+    port: 4000
+    database: "${proj}_game"
+    username: "root"
+    password: "qweasd123"
+    maxOpenConns: 100
+    maxIdleConns: 10
+    maxLifetime: "1h"</span>
+
+<span class="diff-ctx"># === games list ===</span>
+<span class="diff-add">      - gmcode: "${abbr}"
+        name: "${name}"
+        rooms:
+          - id: "${abbr.slice(0,2)}01"
+            name: "${name} Room 1"
+        currencies: [ "PHP" ]
+        bet_types: [ "Manual", "Auto" ]
+        game_plays: ["Grand","Major","Minor","Mini"]</span>
+
+<span class="diff-ctx"># === centersvr section ===</span>
+<span class="diff-add">  ${abbr.toLowerCase()}:
+    base_url: "http://centersvr-backend-svc.${proj}-${suffix}.svc.cluster.local:8200"
+    timeout: "30s"</span>`;
+}
+
+function buildGameDiff(proj, abbr, name, suffix) {
+  return `<span class="diff-ctx"># === tidb section ===</span>
+<span class="diff-add">  ${proj}:
+    host: "advanced-tidb-tidb.tidb-cluster.svc.cluster.local"
+    port: 4000
+    database: "${proj}_game"
+    username: "root"
+    password: "qweasd123"
+    maxOpenConns: 100
+    maxIdleConns: 10
+    maxLifetime: "1h"</span>
+
+<span class="diff-ctx"># === games list ===</span>
+<span class="diff-add">      - gmcode: "${abbr}"
+        name: "${name}"
+        rooms:
+          - id: "${abbr.slice(0,2)}01"
+            name: "${name} Room 1"
+        currencies: [ "PHP" ]
+        bet_types: [ "Manual", "Auto" ]
+        game_plays: ["Grand","Major","Minor","Mini"]</span>
+
+<span class="diff-ctx"># === gi section ===</span>
+<span class="diff-add">  ${abbr.toLowerCase()}:
+    base_url: "http://gi-backend-svc.${proj}-${suffix}.svc.cluster.local:8080"
+    timeout: "30s"</span>
+
+<span class="diff-ctx"># === centersvr section ===</span>
+<span class="diff-add">  ${abbr.toLowerCase()}:
+    base_url: "http://centersvr-backend-svc.${proj}-${suffix}.svc.cluster.local:8200"
+    timeout: "30s"</span>`;
+}
+
+async function applyConfigChanges() {
+  const proj = document.getElementById('cfg-project').value;
+  const env = document.getElementById('cfg-env').value;
+  const abbr = document.getElementById('cfg-abbr').value.trim().toUpperCase();
+  const fullname = document.getElementById('cfg-fullname').value.trim();
+
+  if(!proj){alert('請選擇專案');return;}
+  if(!abbr||!fullname){alert('請填入縮寫和英文名稱');return;}
+  if(!glProjectNumId){alert('請先測試 GitLab 連線');return;}
+
+  const btn = document.getElementById('btn-apply-config');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 推送中...';
+
+  const resultEl = document.getElementById('config-result');
+  resultEl.style.display='block';
+  resultEl.innerHTML = renderProgress('讀取現有 config 檔案...', 20);
+
+  try {
+    const projLower = proj.toLowerCase();
+    const suffix = env==='stage'?'stg':(env==='uat'?'stage':'prod');
+    const baseConfigPath = `game_project/pp/game_project/overlays/${env}`;
+
+    const configs = [
+      `${baseConfigPath}/backend-console-api-backend/conf/config.yaml`,
+      `${baseConfigPath}/cerberus-backend-api-backend/conf/config.yaml`,
+      `${baseConfigPath}/game-backend-api-backend/conf/config.yaml`,
+    ];
+
+    const actions = [];
+
+    for(let i=0; i<configs.length; i++) {
+      const filePath = configs[i];
+      resultEl.innerHTML = renderProgress(`讀取 ${filePath.split('/').slice(-3).join('/')}...`, 20+i*20);
+      let content = await getFileContent(filePath);
+      content = appendToConfig(content, filePath, projLower, abbr, fullname, suffix);
+      actions.push({action:'update', file_path:filePath, content, encoding:'text'});
+    }
+
+    resultEl.innerHTML = renderProgress('提交修改...', 80);
+
+    await glFetch(`/projects/${glProjectNumId}/repository/commits`, {
+      method:'POST',
+      body: JSON.stringify({
+        branch:'main',
+        commit_message:`[config] Add ${proj} config entries in pp/${env} (${abbr})`,
+        actions
+      })
+    });
+
+    resultEl.innerHTML = renderSuccess(`Config 修改已推送！專案: <b>${proj}</b>，縮寫: <b>${abbr}</b>，環境: <b>${env}</b>`,
+      `${API_BASE()}/${NS()}/${REPO()}/-/tree/main/${baseConfigPath}`);
+  } catch(e) {
+    resultEl.innerHTML = renderError(e.message);
+  }
+  btn.disabled=false;
+  btn.innerHTML=`<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>確認並推送到 GitLab`;
+}
+
+function appendToConfig(content, filePath, proj, abbr, name, suffix) {
+  const abbrLower = abbr.toLowerCase();
+  const filename = filePath.split('/').slice(-3,-1).join('/');
+
+  let result = content;
+
+  // --- 1. tidb block: find last tidb entry block and clone it with new proj name ---
+  // Match any tidb key block (e.g. tg115: or bkgl:) with full structure
+  const tidbBlockRe = /^(  \w[\w\d_-]+:)(\n    host:[^\n]+)(\n    port:[^\n]+)(\n    database:[^\n]+)(\n    username:[^\n]+)(\n    password:[^\n]+)(\n    maxOpenConns:[^\n]+)(\n    maxIdleConns:[^\n]+)(\n    maxLifetime:[^\n]+)/gm;
+  let lastTidbMatch = null, m;
+  while((m = tidbBlockRe.exec(result)) !== null) lastTidbMatch = m;
+  if(lastTidbMatch) {
+    const [full, _key, host, port, db, user, pass_, maxOpen, maxIdle, maxLife] = lastTidbMatch;
+    const newDb = db.replace(/database: "[^"]*"/, `database: "${proj}_game"`);
+    const newEntry = `\n  ${proj}:${host}${port}${newDb}${user}${pass_}${maxOpen}${maxIdle}${maxLife}`;
+    const insertAt = lastTidbMatch.index + full.length;
+    result = result.slice(0, insertAt) + newEntry + result.slice(insertAt);
+  }
+
+  // --- 2. games list: clone last game entry block ---
+  const gameBlockRe = /^( {6}- gmcode: "[^"]*"\n {8}name: "[^"]*"\n {8}rooms:[\s\S]*?game_plays: \[[^\]]*\])/gm;
+  let lastGameMatch = null;
+  while((m = gameBlockRe.exec(result)) !== null) lastGameMatch = m;
+  if(lastGameMatch) {
+    const roomIdBase = abbr.slice(0,2);
+    const newGame = `\n      - gmcode: "${abbr}"\n        name: "${name}"\n        rooms:\n          - id: "${roomIdBase}01"\n            name: "${name} Room 1"\n        currencies: [ "PHP" ]\n        bet_types: [ "Manual", "Auto" ]\n        game_plays: ["Grand","Major","Minor","Mini"]`;
+    const insertAt = lastGameMatch.index + lastGameMatch[0].length;
+    result = result.slice(0, insertAt) + newGame + result.slice(insertAt);
+  }
+
+  // --- 3. gi_backend block: clone last gi entry ---
+  if(!filename.includes('cerberus')) {
+    const giRe = /^(  \w[\w\d_-]+:\n    base_url: "http:\/\/gi-backend-svc\.[^\n]+"\n    timeout: "[^"]*")/gm;
+    let lastGiMatch = null;
+    while((m = giRe.exec(result)) !== null) lastGiMatch = m;
+    if(lastGiMatch) {
+      const newGi = `\n  ${abbrLower}:\n    base_url: "http://gi-backend-svc.${proj}-${suffix}.svc.cluster.local:8080"\n    timeout: "30s"`;
+      const insertAt = lastGiMatch.index + lastGiMatch[0].length;
+      result = result.slice(0, insertAt) + newGi + result.slice(insertAt);
+    }
+  }
+
+  // --- 4. centersvr block: clone last centersvr entry ---
+  const csvrRe = /^(  \w[\w\d_-]+:\n    base_url: "http:\/\/centersvr-backend-svc\.[^\n]+"\n    timeout: "[^"]*"[^\n]*)/gm;
+  let lastCsvrMatch = null;
+  while((m = csvrRe.exec(result)) !== null) lastCsvrMatch = m;
+  if(lastCsvrMatch) {
+    const newCsvr = `\n  ${abbrLower}:\n    base_url: "http://centersvr-backend-svc.${proj}-${suffix}.svc.cluster.local:8200"  # ${abbr} 游戏 API 基础 URL\n    timeout: "30s"`;
+    const insertAt = lastCsvrMatch.index + lastCsvrMatch[0].length;
+    result = result.slice(0, insertAt) + newCsvr + result.slice(insertAt);
+  }
+
+  return result;
+}
+
+// --- Deploy ---
+async function triggerPipeline() {
+  const proj = document.getElementById('dep-project').value;
+  const env = document.getElementById('dep-env').value;
+  if(!proj){alert('請選擇專案');return;}
+  if(!glProjectNumId){alert('請先測試 GitLab 連線');return;}
+
+  const resultEl = document.getElementById('deploy-result');
+  resultEl.style.display='block';
+  resultEl.innerHTML = renderProgress('觸發 Pipeline...', 50);
+
+  try {
+    const data = await glFetch(`/projects/${glProjectNumId}/pipeline`, {
+      method:'POST',
+      body: JSON.stringify({
+        ref:'main',
+        variables:[
+          {key:'PROJECT_ID', value:proj},
+          {key:'DEPLOY_ENV', value:env}
+        ]
+      })
+    });
+    const pipelineUrl = `${API_BASE()}/${NS()}/${REPO()}/-/pipelines/${data.id}`;
+    resultEl.innerHTML = renderSuccess(`Pipeline #${data.id} 已觸發！狀態: ${data.status}`, pipelineUrl);
+  } catch(e) {
+    resultEl.innerHTML = renderError(`Pipeline 觸發失敗：${e.message}<br>請確認 CI/CD 已設定 PROJECT_ID / DEPLOY_ENV 變數。`);
+  }
+}
+
+function downloadDeployScript() {
+  const proj = document.getElementById('dep-project').value||'PROJECT';
+  const env = document.getElementById('dep-env').value;
+  const script = `#!/usr/bin/env bash
+# Auto-generated deploy script
+# Project: ${proj}, Env: ${env}
+set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+echo "Deploying ${proj} to ${env}..."
+python3 "\$REPO_ROOT/tools/scaffold/apply_${env==='stage'?'stage':(env==='uat'?'uat':'prod')}.py" --project ${proj}
+`;
+  download(`deploy-${proj}-${env}.sh`, script, 'text/x-sh');
+}
+
+// --- Download Scripts ---
+function downloadScript(type) {
+  const src = document.getElementById('src-project').value||'SOURCE_PROJ';
+  const dst = document.getElementById('new-project').value||'NEW_PROJ';
+  const envs = getSelectedEnvs().join(',');
+  const gl = API_BASE();
+  const ns = NS();
+  const repo = REPO();
+
+  if(type==='sh') {
+    const s = `#!/usr/bin/env bash
+# Kuboard GitOps Project Clone Script
+# Source: ${src} → Target: ${dst}
+# Envs: ${envs}
+set -euo pipefail
+GITLAB="${gl}"
+TOKEN="\${GL_TOKEN:-}"
+NAMESPACE="${ns}"
+REPO="${repo}"
+SRC_PROJ="${src}"
+DST_PROJ="${dst}"
+ENVS="${envs}"
+
+if [ -z "\$TOKEN" ]; then
+  read -rsp "GitLab Private Token: " TOKEN; echo
+fi
+
+REPO_ROOT="\$(pwd)"
+
+echo "[1/4] Cloning repo..."
+git clone --depth 1 "\${GITLAB}/\${NAMESPACE}/\${REPO}.git" /tmp/kuboard_clone 2>/dev/null || true
+cd /tmp/kuboard_clone
+
+echo "[2/4] Running scaffold..."
+python3 tools/scaffold/scaffold.py \\
+  --new-project "\$DST_PROJ" \\
+  --copy-from   "\$SRC_PROJ" \\
+  --services    game_service,gi \\
+  --envs        "\$ENVS"
+
+echo "[3/4] Committing..."
+git add .
+git commit -m "[scaffold] Add project \$DST_PROJ (copied from \$SRC_PROJ)"
+
+echo "[4/4] Pushing..."
+git remote set-url origin "https://oauth2:\${TOKEN}@\${GITLAB#https://}/\${NAMESPACE}/\${REPO}.git"
+git push origin main
+
+echo "Done! https://\${GITLAB#https://}/\${NAMESPACE}/\${REPO}/-/tree/main/game_project/\$DST_PROJ"
+`;
+    download(`clone-${dst}.sh`, s, 'text/x-sh');
+  } else if(type==='ps1') {
+    const s = `# Kuboard GitOps Project Clone Script (PowerShell)
+param(
+  [string]\$Token = \$env:GL_TOKEN
+)
+\$Gitlab = "${gl}"
+\$Namespace = "${ns}"
+\$Repo = "${repo}"
+\$SrcProj = "${src}"
+\$DstProj = "${dst}"
+\$Envs = "${envs}"
+
+if (-not \$Token) {
+  \$Token = Read-Host -Prompt "GitLab Private Token" -AsSecureString | ConvertFrom-SecureString -AsPlainText
+}
+
+\$tmp = "\$env:TEMP\\kuboard_clone"
+Write-Host "[1/4] Cloning repo..."
+git clone --depth 1 "\$Gitlab/\$Namespace/\$Repo.git" \$tmp
+
+Set-Location \$tmp
+Write-Host "[2/4] Running scaffold..."
+python tools/scaffold/scaffold.py \`
+  --new-project \$DstProj \`
+  --copy-from   \$SrcProj \`
+  --services    game_service,gi \`
+  --envs        \$Envs
+
+Write-Host "[3/4] Committing..."
+git add .
+git commit -m "[scaffold] Add project \$DstProj (copied from \$SrcProj)"
+
+Write-Host "[4/4] Pushing..."
+\$url = \$Gitlab -replace "https://","https://oauth2:\${Token}@"
+git remote set-url origin "\$url/\$Namespace/\$Repo.git"
+git push origin main
+
+Write-Host "Done!" -ForegroundColor Green
+`;
+    download(`clone-${dst}.ps1`, s, 'text/plain');
+  } else {
+    const s = `@echo off
+REM Kuboard GitOps Project Clone Script (Windows BAT)
+SET GITLAB=${gl}
+SET NAMESPACE=${ns}
+SET REPO=${repo}
+SET SRC_PROJ=${src}
+SET DST_PROJ=${dst}
+SET ENVS=${envs}
+
+IF "%GL_TOKEN%"=="" (
+  SET /P GL_TOKEN="GitLab Private Token: "
+)
+
+echo [1/4] Cloning repo...
+git clone --depth 1 %GITLAB%/%NAMESPACE%/%REPO%.git %TEMP%\\kuboard_clone
+cd /d %TEMP%\\kuboard_clone
+
+echo [2/4] Running scaffold...
+python tools\\scaffold\\scaffold.py ^
+  --new-project %DST_PROJ% ^
+  --copy-from   %SRC_PROJ% ^
+  --services    game_service,gi ^
+  --envs        %ENVS%
+
+echo [3/4] Committing...
+git add .
+git commit -m "[scaffold] Add project %DST_PROJ% (copied from %SRC_PROJ%)"
+
+echo [4/4] Pushing...
+git push origin main
+echo Done!
+`;
+    download(`clone-${dst}.bat`, s, 'text/plain');
+  }
+}
+
+// --- Helpers ---
+async function getAllFiles(treePath, ref='main') {
+  let page=1, all=[];
+  while(true) {
+    const items = await glFetch(`/projects/${glProjectNumId}/repository/tree?path=${encodeURIComponent(treePath)}&recursive=true&per_page=100&page=${page}&ref=${ref}`);
+    all = all.concat(items);
+    if(items.length<100) break;
+    page++;
+  }
+  return all.filter(i=>i.type==='blob');
+}
+
+async function getFileContent(filePath, ref='main') {
+  if(Object.prototype.hasOwnProperty.call(fileCache, filePath)) return fileCache[filePath];
+  const data = await glFetch(`/projects/${glProjectNumId}/repository/files/${encodeURIComponent(filePath)}/raw?ref=${ref}`);
+  const text = data == null ? '' : String(data);
+  fileCache[filePath] = text;
+  return text;
+}
+
+function renderProgress(msg, pct) {
+  return `<div class="card">
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">${msg}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+function renderSuccess(msg, url) {
+  return `<div class="alert alert-success">
+    <svg class="alert-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    <div>${msg}${url?`<br><a href="${url}" style="color:#58a6ff;font-size:12px;font-family:var(--font)">${url}</a>`:''}
+    </div>
+  </div>`;
+}
+
+function renderError(msg) {
+  return `<div class="alert alert-danger">
+    <svg class="alert-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    <div>${msg}</div>
+  </div>`;
+}
+
+function download(filename, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download = filename;
+  a.click();
+}
+
+// getFileContent defined below in Kuboard YAML Generator section
+
+// ─── Kuboard YAML Generator ────────────────────────────────────────────────
+
+function updateYamlEnvBtns() {
+  const proj = document.getElementById('yaml-project').value;
+  const container = document.getElementById('yaml-env-btns');
+  if(!proj) {
+    container.innerHTML = `<span style="font-size:12px;color:var(--text-dim)">請先選擇專案並連線 GitLab</span>`;
+    return;
+  }
+  const envColors = { dev:'#3fb950', stage:'#58a6ff', uat:'#d29922', gli:'#bc8cff', prod:'#f85149' };
+  const envs = ['dev','stage','uat','gli','prod'];
+  container.innerHTML = envs.map(env => `
+    <button class="btn btn-outline" onclick="downloadKuboardYaml('${proj}','${env}')" id="yaml-btn-${env}">
+      <span style="width:8px;height:8px;border-radius:50%;background:${envColors[env]};display:inline-block;flex-shrink:0"></span>
+      下載 ${env} YAML
+    </button>
+  `).join('') + `
+    <button class="btn btn-outline" onclick="downloadAllEnvYaml('${proj}')" style="margin-left:4px">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      全部環境（ZIP）
+    </button>
+  `;
+}
+
+async function downloadKuboardYaml(proj, env) {
+  if(!glProjectNumId){alert('請先測試 GitLab 連線');return;}
+  const btn = document.getElementById(`yaml-btn-${env}`);
+  const progEl = document.getElementById('yaml-progress');
+  if(btn){ btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> 產生中...`; }
+  progEl.innerHTML = renderProgress(`讀取 ${proj}/${env} overlay 檔案...`, 10);
+
+  try {
+    const yaml = await buildKuboardYaml(proj, env, (msg,pct)=>{
+      progEl.innerHTML = renderProgress(msg, pct);
+    });
+    const suffix = envSuffix(env);
+    download(`${proj}-${env}-kuboard.yaml`, yaml, 'application/x-yaml');
+    progEl.innerHTML = renderSuccess(`${proj} / ${env} YAML 已下載，共 ${countYamlResources(yaml)} 個 Kubernetes 資源。`);
+  } catch(e) {
+    progEl.innerHTML = renderError(e.message);
+  }
+  if(btn){
+    const envColors = { dev:'#3fb950', stage:'#58a6ff', uat:'#d29922', gli:'#bc8cff', prod:'#f85149' };
+    btn.disabled=false;
+    btn.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${envColors[env]};display:inline-block;flex-shrink:0"></span>下載 ${env} YAML`;
+  }
+}
+
+async function downloadAllEnvYaml(proj) {
+  if(!glProjectNumId){alert('請先測試 GitLab 連線');return;}
+  const progEl = document.getElementById('yaml-progress');
+  const envs = ['dev','stage','uat','gli','prod'];
+  const results = [];
+  for(const env of envs) {
+    progEl.innerHTML = renderProgress(`產生 ${env} YAML...`, Math.round(envs.indexOf(env)/envs.length*90));
+    try {
+      const yaml = await buildKuboardYaml(proj, env, ()=>{});
+      results.push({env, yaml});
+    } catch(e) {
+      // env doesn't exist, skip
+    }
+  }
+  if(!results.length){ progEl.innerHTML = renderError('找不到任何環境 overlay'); return; }
+
+  // Simple multi-file: download each separately (no JSZip dependency needed)
+  for(const {env,yaml} of results) {
+    download(`${proj}-${env}-kuboard.yaml`, yaml, 'application/x-yaml');
+    await new Promise(r=>setTimeout(r,300));
+  }
+  progEl.innerHTML = renderSuccess(`已下載 ${results.length} 個環境的 YAML：${results.map(r=>r.env).join(', ')}`);
+}
+
+function envSuffix(env) {
+  // Kubernetes namespace suffix rules confirmed by the operator.
+  // stage -> <project>-stg, uat -> <project>-stage, prod -> <project>-stage.
+  // If prod should become <project>-prod later, change only this mapping.
+  if(env === 'stage') return 'stg';
+  if(env === 'uat') return 'stage';
+  if(env === 'prod') return 'stage';
+  return env;
+}
+
+function namespaceFor(proj, env) {
+  return `${proj}-${envSuffix(env)}`;
+}
+
+function nacosEnvSuffix(env) {
+  // Kuboard namespace can be tg139-stg, but Nacos namespace in gatesvr-backend-env
+  // uses tg139_stage for stage-like environments.
+  if(env === 'stage' || env === 'uat' || env === 'prod') return 'stage';
+  return env;
+}
+
+function nacosNamespaceFor(proj, env) {
+  return `${proj}_${nacosEnvSuffix(env)}`;
+}
+
+function rocketMqNamespaceFor(proj, env) {
+  // stage uses the shared rocketmq namespace and should not be generated again.
+  return env === 'stage' ? 'rocketmq' : `rocketmq-${proj}`;
+}
+
+function shouldExportRocketMq(env) {
+  return env !== 'stage';
+}
+
+function giGameNameFor(proj) {
+  // tg139 currently uses tg103 in gi-backend-env/config.yaml.
+  return proj === 'tg139' ? 'tg103' : proj;
+}
+
+function buildProjectRuntimeDocs(proj, env, namespace) {
+  // These two ConfigMaps are required by the generated Deployments but might not
+  // exist in the repository kustomization. They are added as safe defaults.
+  // If GitLab later provides the same ConfigMap, the GitLab version overwrites these.
+  return [
+    buildGatesvrBackendEnvConfigMap(proj, env, namespace),
+    buildGiBackendEnvConfigMap(proj, env, namespace),
+  ];
+}
+
+function buildGatesvrBackendEnvConfigMap(proj, env, namespace) {
+  return `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gatesvr-backend-env
+  namespace: ${namespace}
+data:
+  CONFIG_GROUP: "GAME"
+  CONFIG_NAME: "gatesvr.xml"
+  NAMESPACE: "${nacosNamespaceFor(proj, env)}"
+  PASSWORD: "nacos"
+  REGISTER_HOST: "nacos-hs.nacos:8848"
+  USER_NAME: "nacos"`;
+}
+
+function buildGiBackendConfig(proj, env, namespace) {
+  const redisNs = namespace;
+  return `server:
+  run_mod: debug #debug, release
+  port: 8080
+  healthPort: 8088
+
+database:
+  game:
+    host: "advanced-tidb-tidb.tidb-cluster.svc.cluster.local"
+    port: 4000
+    databaseName: "${proj}_game"
+    username: "root"
+    password: "qweasd123"
+    maxOpenConns: 100
+    maxIdleConns: 10
+    maxLifetime: "1h"
+
+redis:
+  name: "gi-redis"
+  addresses:
+    - "redis-cluster-${proj}-0.redis-cluster-${proj}-headless.${redisNs}:6379"
+    - "redis-cluster-${proj}-1.redis-cluster-${proj}-headless.${redisNs}:6379"
+    - "redis-cluster-${proj}-2.redis-cluster-${proj}-headless.${redisNs}:6379"
+    - "redis-cluster-${proj}-3.redis-cluster-${proj}-headless.${redisNs}:6379"
+    - "redis-cluster-${proj}-4.redis-cluster-${proj}-headless.${redisNs}:6379"
+    - "redis-cluster-${proj}-5.redis-cluster-${proj}-headless.${redisNs}:6379"
+  password: "safesync"
+  db: 0
+  pool:
+    max_active: 50
+    max_idle: 10
+    min_idle: 2
+  conn_timeout: "5s"
+  read_timeout: "3s"
+  write_timeout: "3s"
+
+gameConfig:
+  defaultRoomId: "CR01"
+  gameName: "${giGameNameFor(proj)}"
+  urlMap:
+    h5: "https://${proj}-game-client-frontend.trevi-stage.cc/h5/index.html"
+    pch5: "https://${proj}-game-client-frontend.trevi-stage.cc/pch5/index.html"
+
+logging:
+  level: debug # debug, info
+  format: console # json, console
+  development: true`;
+}
+
+function buildGiBackendEnvConfigMap(proj, env, namespace) {
+  const cfg = buildGiBackendConfig(proj, env, namespace).trimEnd();
+  return `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gi-backend-env
+  namespace: ${namespace}
+data:
+  config.yaml: |
+${cfg.split('\n').map(l => '    ' + l).join('\n')}`;
+}
+
+async function buildKuboardYaml(proj, env, onProgress) {
+  const overlayPath = `game_project/${proj}/game_project/overlays/${env}`;
+  const imageTagOverride = document.getElementById('yaml-image-tag').value.trim();
+
+  onProgress(`讀取 ${env} overlay 目錄...`, 15);
+
+  let overlayFiles;
+  try {
+    overlayFiles = await getAllFiles(overlayPath);
+  } catch(e) {
+    throw new Error(`環境 ${env} 不存在於專案 ${proj}`);
+  }
+
+  let rootKust = '';
+  try { rootKust = await getKustomizationContent(overlayPath); } catch(e) {}
+
+  let namespace = namespaceFor(proj, env);
+  try {
+    const nsContent = await getFileContent(`${overlayPath}/namespace.yaml`);
+    const nsMatch = nsContent.match(/^\s*name:\s*([^\s#]+)/m);
+    if(nsMatch) namespace = cleanYamlValue(nsMatch[1]);
+  } catch(e) {
+    const nsFromKust = rootKust.match(/^\s*namespace:\s*([^\s#]+)/m);
+    if(nsFromKust) namespace = cleanYamlValue(nsFromKust[1]);
+  }
+
+  const resourceOrder = [];
+  const resourceMap = new Map();
+  const warnings = [];
+
+  function addResourceDocs(raw, sourceLabel, options={}) {
+    for(const rawDoc of splitYamlDocs(raw)) {
+      let doc = rawDoc.trim();
+      if(!doc || !/^\s*apiVersion\s*:/m.test(doc) || !/^\s*kind\s*:/m.test(doc)) continue;
+      // Most app resources should be forced into the selected project namespace.
+      // Some global resources, such as RocketMQ ConfigMap in rocketmq-tg139, must keep their own namespace.
+      const metaBeforeNs = resourceMeta(doc);
+      if(!(options.keepNamespace && metaBeforeNs.namespace)) doc = injectNamespace(doc, namespace);
+      doc = overrideImageTag(doc, imageTagOverride);
+      const key = resourceKey(doc) || `raw:${sourceLabel}:${resourceOrder.length}`;
+      if(!resourceMap.has(key)) resourceOrder.push(key);
+      resourceMap.set(key, doc.trim());
+    }
+  }
+
+  // Always include namespace first. If namespace.yaml exists, the kustomize build below may
+  // overwrite this entry with the repository version, but the order is preserved.
+  addResourceDocs(`apiVersion: v1\nkind: Namespace\nmetadata:\n  name: ${namespace}\n  labels:\n    environment: ${env}`, 'namespace');
+
+  // Required runtime ConfigMaps captured from Kuboard. Repository manifests can overwrite them if present.
+  for(const runtimeDoc of buildProjectRuntimeDocs(proj, env, namespace)) {
+    addResourceDocs(runtimeDoc, 'project-runtime-defaults');
+  }
+
+  onProgress(`解析 root 與服務層 kustomization.yaml...`, 30);
+
+  // 1) Prefer the root overlay kustomization if it exists. It can reference every service
+  //    directory under overlays/<env>/, just like real kustomize build.
+  if(rootKust) {
+    try {
+      const rootDocs = await buildKustomizeDirDocs(overlayPath, namespace, imageTagOverride, warnings, new Set());
+      addResourceDocs(rootDocs.join('\n---\n'), `${overlayPath}/kustomization.yaml`);
+    } catch(e) {
+      warnings.push(`root kustomization 解析失敗：${e.message}`);
+    }
+  }
+
+  // 2) Also scan every first-level service folder that has its own kustomization.yaml.
+  //    This covers repositories where overlays/<env>/kustomization.yaml is missing,
+  //    incomplete, or does not list all services.
+  const serviceDirs = discoverOverlayServiceDirs(overlayFiles, overlayPath, rootKust);
+  let idx = 0;
+  for(const svc of serviceDirs) {
+    idx++;
+    onProgress(`處理服務 ${svc} (${idx}/${serviceDirs.length})...`, 35 + Math.round(idx / Math.max(serviceDirs.length, 1) * 45));
+    const svcPath = `${overlayPath}/${svc}`;
+    try {
+      const svcDocs = await buildKustomizeDirDocs(svcPath, namespace, imageTagOverride, warnings, new Set());
+      addResourceDocs(svcDocs.join('\n---\n'), svcPath);
+    } catch(e) {
+      warnings.push(`${svc} 解析失敗：${e.message}`);
+      // Last fallback: include complete YAML manifests that are placed directly in the service folder.
+      try {
+        const directDocs = await getYamlDocsFromDirectory(svcPath, namespace, imageTagOverride, true);
+        addResourceDocs(directDocs.join('\n---\n'), `${svcPath} fallback`);
+      } catch(_e) {}
+    }
+  }
+
+  // 3) Root-level YAML files that are not service folders, for example namespace.yaml,
+  //    ingress.yaml, secret.yaml, or other global resources.
+  onProgress(`讀取 root 層額外 YAML...`, 82);
+  for(const f of overlayFiles) {
+    const rel = f.path.replace(overlayPath + '/', '');
+    if(rel.includes('/')) continue;
+    if(!isYamlFile(rel) || isKustomizationFile(rel)) continue;
+    try {
+      const content = await getFileContent(f.path);
+      addResourceDocs(content, f.path);
+    } catch(e) {
+      warnings.push(`${rel} 讀取失敗：${e.message}`);
+    }
+  }
+
+  // Redis Cluster Helm values are not converted into plain Kubernetes manifests here.
+  // Keep a deploy note in the header instead of producing an invalid partial resource.
+  let hasRedisValues = false;
+  try {
+    await getFileContent(`game_project/${proj}/redis-cluster/${env}/values.yaml`);
+    hasRedisValues = true;
+    onProgress(`確認 Redis Cluster values...`, 86);
+  } catch(e) {}
+
+  // RocketMQ topics / defaults.
+  // stage uses the shared rocketmq namespace and should not be generated again.
+  // Other environments use an independent namespace such as rocketmq-tg139.
+  try {
+    if(shouldExportRocketMq(env)) {
+      const mqPath = `game_project/${proj}/RocketMQ/${env}`;
+      const mqFiles = await getAllFiles(mqPath);
+      const mqDocs = [];
+      for(const f of mqFiles) {
+        const fc = await getFileContent(f.path);
+        if(fc.trim()) mqDocs.push({path:f.path, content:fc.trim()});
+      }
+      if(mqDocs.length) {
+        const mqNamespace = rocketMqNamespaceFor(proj, env);
+        addResourceDocs(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${mqNamespace}
+  labels:
+    component: rocketmq
+    project: ${proj}
+    environment: ${env}`, 'rocketmq namespace', {keepNamespace:true});
+        const topicsFile = (mqDocs.find(d=>d.content.includes('names:')) || mqDocs[0]).content;
+        const defaultsFile = (mqDocs.find(d=>d.content.includes('namesrvAddr:')) || {content:''}).content;
+        const mqLines = [
+          'apiVersion: v1',
+          'kind: ConfigMap',
+          'metadata:',
+          `  name: rocketmq-${proj}-config`,
+          `  namespace: ${mqNamespace}`,
+          '  labels:',
+          `    project: ${proj}`,
+          `    env: ${env}`,
+          'data:',
+          '  defaults.yaml: |',
+        ].concat(defaultsFile.split('\n').map(l => '    ' + l))
+         .concat(['  topics.yaml: |'])
+         .concat(topicsFile.split('\n').map(l => '    ' + l));
+        addResourceDocs(mqLines.join('\n'), `${mqPath}/ConfigMap`, {keepNamespace:true});
+      }
+      onProgress('讀取 RocketMQ topics...', 90);
+    } else {
+      onProgress('RocketMQ stage 使用共用 namespace，略過輸出...', 90);
+    }
+  } catch(e) {
+    // No RocketMQ config for this env
+  }
+
+  onProgress(`組合 YAML 輸出...`, 95);
+
+  const manifestDocs = resourceOrder.map(k => resourceMap.get(k)).filter(Boolean);
+  const warningText = warnings.length ? warnings.map(w => `# - ${w}`).join('\n') : '# - 無';
+  const redisNote = hasRedisValues
+    ? `# Redis Cluster: 偵測到 game_project/${proj}/redis-cluster/${env}/values.yaml\n#   請用 Helm 或 ArgoCD Helm Application 部署 Redis Cluster。`
+    : '# Redis Cluster: 此環境未偵測到 redis-cluster values.yaml';
+
+  const header = `# ============================================================
+# Kuboard YAML — ${proj} / ${env}
+# Namespace: ${namespace}
+# Generated: ${new Date().toISOString().slice(0,19).replace('T',' ')}
+# GitLab: ${API_BASE()}/${NS()}/${REPO()}/-/tree/main/game_project/${proj}
+# ============================================================
+# 使用方式：在 Kuboard 的 Namespace > Create from YAML 貼入此檔案
+# 多個 Kubernetes resource 以 --- 分隔，Kuboard 會依序建立
+# ============================================================
+# 本版輸出邏輯：
+# 1. 會讀取 overlays/${env}/kustomization.yaml（如存在）
+# 2. 會額外掃描 overlays/${env}/<service>/kustomization.yaml
+# 3. 會輸出各服務 base Deployment / Service，以及 overlay 內的 ConfigMap、Secret、Ingress 等 YAML
+# 4. patch 採前端 best-effort 合併；若要 100% 等同 kustomize，建議仍以 kustomize build 驗證
+# ============================================================
+${redisNote}
+# Runtime ConfigMap: 會補 gatesvr-backend-env 與 gi-backend-env；若 GitLab 已有同名資源則以 GitLab 版本為準
+# RocketMQ: stage 使用共用 rocketmq namespace 不輸出；其他環境輸出到 rocketmq-${proj} namespace
+# 解析警告：
+${warningText}
+# ============================================================\n`;
+
+  return header + manifestDocs.join('\n---\n') + '\n';
+}
+
+function discoverOverlayServiceDirs(overlayFiles, overlayPath, rootKust='') {
+  const dirs = new Set();
+  for(const f of overlayFiles) {
+    const rel = f.path.replace(overlayPath + '/', '');
+    const parts = rel.split('/');
+    if(parts.length >= 2 && parts[1].match(/^kustomization\.ya?ml$/i)) dirs.add(parts[0]);
+  }
+  // If root resources reference a first-level directory, include it too.
+  for(const ref of parseKustomizeList(rootKust, 'resources').concat(parseKustomizeList(rootKust, 'bases'))) {
+    const cleaned = cleanYamlValue(ref).replace(/^\.\//, '').replace(/\/$/, '');
+    if(!cleaned || cleaned.startsWith('..') || isYamlFile(cleaned)) continue;
+    const first = cleaned.split('/')[0];
+    if(first) dirs.add(first);
+  }
+  return [...dirs].sort();
+}
+
+async function buildKustomizeDirDocs(dirPath, namespace, imageTagOverride, warnings, seenDirs) {
+  const normalizedDir = normalizeRepoPath(dirPath);
+  if(seenDirs.has(normalizedDir)) return [];
+  seenDirs.add(normalizedDir);
+
+  let kust = '';
+  try {
+    kust = await getKustomizationContent(normalizedDir);
+  } catch(e) {
+    return getYamlDocsFromDirectory(normalizedDir, namespace, imageTagOverride, true);
+  }
+
+  let docs = [];
+  const refs = parseKustomizeList(kust, 'resources').concat(parseKustomizeList(kust, 'bases'));
+
+  for(const ref of refs) {
+    try {
+      const refDocs = await getDocsFromKustomizeRef(normalizedDir, ref, namespace, imageTagOverride, warnings, seenDirs);
+      docs.push(...refDocs);
+    } catch(e) {
+      warnings.push(`${normalizedDir}: resources ${ref} 讀取失敗：${e.message}`);
+    }
+  }
+
+  // Generators are relative to the current kustomization directory.
+  docs.push(...await buildConfigMaps(kust, normalizedDir, namespace));
+  docs.push(...await buildSecrets(kust, normalizedDir, namespace));
+
+  const patchDocs = [];
+  for(const pp of parseKustomizePatchPaths(kust)) {
+    const patchPath = resolveRepoPath(normalizedDir, pp);
+    try {
+      const patchContent = await getFileContent(patchPath);
+      patchDocs.push(...splitYamlDocs(patchContent));
+    } catch(e) {
+      warnings.push(`${normalizedDir}: patch ${pp} 讀取失敗：${e.message}`);
+    }
+  }
+
+  if(patchDocs.length) docs = applyPatchesToDocs(docs, patchDocs, namespace, imageTagOverride, warnings, normalizedDir);
+
+  // Include complete YAML files placed directly in this kustomization directory that are not listed
+  // through resources. This is intentional for Kuboard export: some teams put Secret / Ingress /
+  // Deployment YAML directly under each service overlay folder.
+  try {
+    const directDocs = await getYamlDocsFromDirectory(normalizedDir, namespace, imageTagOverride, false);
+    docs.push(...directDocs);
+  } catch(e) {}
+
+  return dedupeDocs(docs);
+}
+
+async function getDocsFromKustomizeRef(baseDir, ref, namespace, imageTagOverride, warnings, seenDirs) {
+  const cleanRef = cleanYamlValue(ref);
+  if(!cleanRef) return [];
+  const resolved = resolveRepoPath(baseDir, cleanRef);
+  if(isYamlFile(resolved)) {
+    const content = await getFileContent(resolved);
+    return splitYamlDocs(content).map(d => overrideImageTag(injectNamespace(d, namespace), imageTagOverride));
+  }
+
+  // Directory reference. Prefer its kustomization.yaml if present; otherwise include YAML files inside.
+  try {
+    await getKustomizationContent(resolved);
+    return buildKustomizeDirDocs(resolved, namespace, imageTagOverride, warnings, seenDirs);
+  } catch(e) {
+    return getYamlDocsFromDirectory(resolved, namespace, imageTagOverride, true);
+  }
+}
+
+async function getYamlDocsFromDirectory(dirPath, namespace, imageTagOverride, recursive) {
+  const files = recursive ? await getAllFiles(dirPath) : await getDirectFiles(dirPath);
+  const docs = [];
+  for(const f of files) {
+    if(!isYamlFile(f.path)) continue;
+    if(isKustomizationFile(f.path)) continue;
+    if(isLikelyPatchFile(f.path)) continue;
+    let content = await getFileContent(f.path);
+    for(let doc of splitYamlDocs(content)) {
+      if(!/^\s*apiVersion\s*:/m.test(doc) || !/^\s*kind\s*:/m.test(doc)) continue;
+      doc = injectNamespace(doc, namespace);
+      doc = overrideImageTag(doc, imageTagOverride);
+      docs.push(doc.trim());
+    }
+  }
+  return docs;
+}
+
+async function getDirectFiles(dirPath) {
+  const all = await getAllFiles(dirPath);
+  const prefix = normalizeRepoPath(dirPath) + '/';
+  return all.filter(f => {
+    const rel = f.path.replace(prefix, '');
+    return rel && !rel.includes('/');
+  });
+}
+
+async function getKustomizationContent(dirPath) {
+  const candidates = [
+    `${dirPath}/kustomization.yaml`,
+    `${dirPath}/kustomization.yml`,
+    `${dirPath}/Kustomization`
+  ];
+  let lastErr = null;
+  for(const p of candidates) {
+    try { return await getFileContent(normalizeRepoPath(p)); }
+    catch(e) { lastErr = e; }
+  }
+  throw lastErr || new Error('kustomization.yaml not found');
+}
+
+function splitYamlDocs(content) {
+  return String(content || '')
+    .replace(/\r\n/g, '\n')
+    .split(/^\s*---\s*$/m)
+    .map(d => d.trim())
+    .filter(Boolean);
+}
+
+function isYamlFile(path) { return /\.ya?ml$/i.test(path || ''); }
+function isKustomizationFile(path) { return /(^|\/)kustomization\.ya?ml$/i.test(path || '') || /(^|\/)Kustomization$/i.test(path || ''); }
+function isLikelyPatchFile(path) { return /(^|\/)(patch|patches|patch-)\S*\.ya?ml$/i.test(path || ''); }
+
+function normalizeRepoPath(path) {
+  const out = [];
+  for(const part of String(path || '').split('/')) {
+    if(!part || part === '.') continue;
+    if(part === '..') out.pop();
+    else out.push(part);
+  }
+  return out.join('/');
+}
+
+function resolveRepoPath(baseDir, ref) {
+  return normalizeRepoPath(`${baseDir}/${cleanYamlValue(ref)}`);
+}
+
+function cleanYamlValue(v) {
+  let s = String(v == null ? '' : v).trim();
+  s = s.replace(/\s+#.*$/, '').trim();
+  if((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) s = s.slice(1, -1);
+  return s.trim();
+}
+
+function getKustomizeSection(kust, key) {
+  const lines = String(kust || '').replace(/\r\n/g, '\n').split('\n');
+  const keyRe = new RegExp(`^(\\s*)${escapeRegExp(key)}:\\s*(.*)$`);
+  for(let i=0; i<lines.length; i++) {
+    const m = lines[i].match(keyRe);
+    if(!m) continue;
+    const baseIndent = m[1].length;
+    const collected = [];
+    const inline = m[2].trim();
+    if(inline) collected.push(' '.repeat(baseIndent + 2) + inline);
+    for(let j=i+1; j<lines.length; j++) {
+      const line = lines[j];
+      if(!line.trim()) { collected.push(line); continue; }
+      const indent = (line.match(/^\s*/) || [''])[0].length;
+      if(indent <= baseIndent && !line.trim().startsWith('#')) break;
+      collected.push(line);
+    }
+    return collected.join('\n');
+  }
+  return '';
+}
+
+function parseKustomizeList(kust, key) {
+  const results = [];
+  const lines = String(kust || '').replace(/\r\n/g, '\n').split('\n');
+  const keyRe = new RegExp(`^(\\s*)${escapeRegExp(key)}:\\s*(.*)$`);
+  for(let i=0; i<lines.length; i++) {
+    const m = lines[i].match(keyRe);
+    if(!m) continue;
+    const baseIndent = m[1].length;
+    const inline = m[2].trim();
+    if(inline.startsWith('[') && inline.endsWith(']')) {
+      results.push(...inline.slice(1, -1).split(',').map(cleanYamlValue).filter(Boolean));
+      continue;
+    }
+    if(inline && !inline.startsWith('|') && !inline.startsWith('>')) {
+      results.push(cleanYamlValue(inline));
+      continue;
+    }
+    for(let j=i+1; j<lines.length; j++) {
+      const line = lines[j];
+      if(!line.trim() || line.trim().startsWith('#')) continue;
+      const indent = (line.match(/^\s*/) || [''])[0].length;
+      if(indent <= baseIndent && !line.trim().startsWith('-')) break;
+      const item = line.match(/^\s*-\s*(.+?)\s*$/);
+      if(item) {
+        const value = cleanYamlValue(item[1]);
+        // Skip object list items such as "path: patch.yaml" here; parsePatchPaths handles those.
+        if(value && !/^\w+\s*:/.test(value)) results.push(value);
+      }
+    }
+  }
+  return results.filter(Boolean);
+}
+
+function parseKustomizePatchPaths(kust) {
+  const paths = [];
+  paths.push(...parseKustomizeList(kust, 'patchesStrategicMerge'));
+  paths.push(...parseKustomizeList(kust, 'patchesJson6902'));
+  paths.push(...parseKustomizeList(kust, 'patches'));
+  const section = getKustomizeSection(kust, 'patches');
+  for(const line of section.split('\n')) {
+    const m = line.match(/^\s*-?\s*path:\s*(.+?)\s*$/);
+    if(m) paths.push(cleanYamlValue(m[1]));
+  }
+  return [...new Set(paths.map(cleanYamlValue).filter(p => p && isYamlFile(p)))];
+}
+
+function parseGeneratorBlocks(kust, key) {
+  const section = getKustomizeSection(kust, key);
+  if(!section) return [];
+  const blocks = [];
+  let cur = null;
+  let listKey = null;
+  for(const raw of section.split('\n')) {
+    const trimmed = raw.trim();
+    if(!trimmed || trimmed.startsWith('#')) continue;
+    let m = trimmed.match(/^-\s*name:\s*(.+)$/);
+    if(m) {
+      if(cur) blocks.push(cur);
+      cur = { name: cleanYamlValue(m[1]), envs: [], files: [], literals: [] };
+      listKey = null;
+      continue;
+    }
+    if(!cur) continue;
+    m = trimmed.match(/^(envs|files|literals):\s*(.*)$/);
+    if(m) {
+      listKey = m[1];
+      const inline = m[2].trim();
+      if(inline.startsWith('[') && inline.endsWith(']')) {
+        cur[listKey].push(...inline.slice(1, -1).split(',').map(cleanYamlValue).filter(Boolean));
+      }
+      continue;
+    }
+    m = trimmed.match(/^-\s*(.+)$/);
+    if(m && listKey) {
+      cur[listKey].push(cleanYamlValue(m[1]));
+      continue;
+    }
+    m = trimmed.match(/^(\w[\w-]*):\s*(.+)$/);
+    if(m) {
+      cur[m[1]] = cleanYamlValue(m[2]);
+      listKey = null;
+    }
+  }
+  if(cur) blocks.push(cur);
+  return blocks.filter(b => b.name);
+}
+
+async function buildConfigMaps(kust, workDir, namespace) {
+  const docs = [];
+  for(const block of parseGeneratorBlocks(kust, 'configMapGenerator')) {
+    const data = {};
+    await fillGeneratorData(block, workDir, data);
+    if(!Object.keys(data).length) continue;
+    let cmYaml = `apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: ${block.name}\n  namespace: ${namespace}\ndata:\n`;
+    for(const [k,v] of Object.entries(data)) cmYaml += yamlDataEntry(k, v, 2);
+    docs.push(cmYaml.trim());
+  }
+  return docs;
+}
+
+async function buildSecrets(kust, workDir, namespace) {
+  const docs = [];
+  for(const block of parseGeneratorBlocks(kust, 'secretGenerator')) {
+    const data = {};
+    await fillGeneratorData(block, workDir, data);
+    if(!Object.keys(data).length) continue;
+    let secYaml = `apiVersion: v1\nkind: Secret\nmetadata:\n  name: ${block.name}\n  namespace: ${namespace}\ntype: ${block.type || 'Opaque'}\nstringData:\n`;
+    for(const [k,v] of Object.entries(data)) secYaml += yamlDataEntry(k, v, 2);
+    docs.push(secYaml.trim());
+  }
+  return docs;
+}
+
+async function fillGeneratorData(block, workDir, data) {
+  for(const lit of block.literals || []) {
+    const idx = lit.indexOf('=');
+    if(idx > 0) data[lit.slice(0, idx).trim()] = lit.slice(idx + 1);
+  }
+  for(const envFile of block.envs || []) {
+    try {
+      const envContent = await getFileContent(resolveRepoPath(workDir, envFile));
+      for(const line of envContent.split(/\r?\n/)) {
+        if(!line.trim() || line.trim().startsWith('#')) continue;
+        const idx = line.indexOf('=');
+        if(idx > 0) data[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+      }
+    } catch(e) {}
+  }
+  for(const fileRef of block.files || []) {
+    const idx = fileRef.indexOf('=');
+    const key = idx >= 0 ? fileRef.slice(0, idx).trim() : basename(fileRef);
+    const rel = idx >= 0 ? fileRef.slice(idx + 1).trim() : fileRef;
+    try {
+      data[key] = await getFileContent(resolveRepoPath(workDir, rel));
+    } catch(e) {}
+  }
+}
+
+function yamlDataEntry(key, value, indent) {
+  const pad = ' '.repeat(indent);
+  const safeKey = /^[A-Za-z0-9._-]+$/.test(key) ? key : JSON.stringify(key);
+  const v = String(value == null ? '' : value).replace(/\r\n/g, '\n');
+  if(v.includes('\n')) return `${pad}${safeKey}: |\n` + v.split('\n').map(l => `${pad}  ${l}`).join('\n') + '\n';
+  return `${pad}${safeKey}: ${JSON.stringify(v)}\n`;
+}
+
+function basename(path) {
+  const s = String(path || '').split('/').filter(Boolean).pop() || 'file';
+  return s;
+}
+
+function applyPatchesToDocs(docs, patchDocs, namespace, imageTagOverride, warnings, context) {
+  let result = docs.slice();
+  for(let patch of patchDocs) {
+    patch = overrideImageTag(injectNamespace(patch, namespace), imageTagOverride);
+    const pMeta = resourceMeta(patch);
+    let applied = false;
+    result = result.map(doc => {
+      const dMeta = resourceMeta(doc);
+      const match = pMeta.kind && pMeta.name
+        ? (pMeta.kind === dMeta.kind && pMeta.name === dMeta.name)
+        : result.length === 1;
+      if(match) {
+        applied = true;
+        return mergeYamlPatch(doc, patch, namespace);
+      }
+      return doc;
+    });
+    if(!applied && /^\s*apiVersion\s*:/m.test(patch) && /^\s*kind\s*:/m.test(patch)) {
+      warnings.push(`${context}: patch ${pMeta.kind || '?'} / ${pMeta.name || '?'} 找不到對應 base，已作為獨立 YAML 輸出`);
+      result.push(patch);
+    }
+  }
+  return dedupeDocs(result);
+}
+
+function mergeYamlPatch(base, patch, namespace) {
+  // Best-effort strategic merge for common Kubernetes Deployment patch fields.
+  // This keeps the tool frontend-only while still covering image, replicas,
+  // resources, env/envFrom, volumeMounts, volumes, labels and annotations in most layouts.
+  let out = base;
+
+  const repMatch = patch.match(/^\s*replicas:\s*(\d+)\s*$/m);
+  if(repMatch) {
+    if(/^\s*replicas:\s*\d+\s*$/m.test(out)) out = out.replace(/^\s*replicas:\s*\d+\s*$/m, `  replicas: ${repMatch[1]}`);
+    else out = out.replace(/^(\s*spec:\s*\n)/m, `$1  replicas: ${repMatch[1]}\n`);
+  }
+
+  const imgMatch = patch.match(/^\s*image:\s*(\S+)\s*$/m);
+  if(imgMatch) out = out.replace(/^(\s*image:\s*)\S+\s*$/m, `$1${imgMatch[1]}`);
+
+  const blocks = ['resources', 'envFrom', 'env', 'volumeMounts', 'volumes', 'nodeSelector', 'tolerations', 'affinity'];
+  for(const key of blocks) {
+    const block = extractYamlBlock(patch, key);
+    if(!block) continue;
+    out = replaceOrAppendYamlBlock(out, key, block);
+  }
+
+  return injectNamespace(out, namespace);
+}
+
+function extractYamlBlock(yaml, key) {
+  const lines = String(yaml || '').replace(/\r\n/g, '\n').split('\n');
+  for(let i=0; i<lines.length; i++) {
+    const m = lines[i].match(new RegExp(`^(\\s*)${escapeRegExp(key)}:\\s*$`));
+    if(!m) continue;
+    const indent = m[1].length;
+    const collected = [lines[i]];
+    for(let j=i+1; j<lines.length; j++) {
+      const line = lines[j];
+      if(!line.trim()) { collected.push(line); continue; }
+      const ind = (line.match(/^\s*/) || [''])[0].length;
+      if(ind <= indent) break;
+      collected.push(line);
+    }
+    return collected.join('\n');
+  }
+  return '';
+}
+
+function replaceOrAppendYamlBlock(yaml, key, block) {
+  const existing = extractYamlBlock(yaml, key);
+  if(existing) return yaml.replace(existing, block);
+  // Common fallback: append container-level keys after image, pod-level volumes after containers.
+  if(['resources', 'envFrom', 'env', 'volumeMounts'].includes(key)) {
+    return yaml.replace(/^(\s*image:\s*\S+\s*)$/m, `$1\n${block}`);
+  }
+  if(key === 'volumes') {
+    return yaml.replace(/^(\s*containers:\s*\n[\s\S]*?)(\n\s*restartPolicy:|\n\s*dnsPolicy:|\n\s*imagePullSecrets:|\n\s*terminationGracePeriodSeconds:|\n\s{4}\w)/m, (m, a, b) => `${a}\n${block}${b}`);
+  }
+  return yaml + '\n' + block;
+}
+
+function injectNamespace(yaml, ns) {
+  if(!/^\s*apiVersion\s*:/m.test(yaml) || !/^\s*kind\s*:/m.test(yaml)) return yaml;
+  const kind = (yaml.match(/^\s*kind:\s*(\S+)/m) || [,''])[1];
+  const clusterScoped = new Set(['Namespace','Node','PersistentVolume','StorageClass','ClusterRole','ClusterRoleBinding','CustomResourceDefinition','MutatingWebhookConfiguration','ValidatingWebhookConfiguration','PriorityClass']);
+  if(clusterScoped.has(kind)) return yaml;
+  if(/metadata:\s*\n[\s\S]*?^\s{2}namespace:\s*/m.test(yaml)) {
+    return yaml.replace(/(metadata:\s*\n[\s\S]*?^\s{2}namespace:)\s*[^\n]+/m, `$1 ${ns}`);
+  }
+  return yaml.replace(/(metadata:\s*\n(?:\s{2}[^\n]+\n)*?\s{2}name:\s*[^\n]+\n)/m, `$1  namespace: ${ns}\n`);
+}
+
+function overrideImageTag(yaml, tag) {
+  if(!tag) return yaml;
+  return String(yaml || '').replace(/^(\s*image:\s*)(\S+)\s*$/gm, (m, prefix, img) => {
+    const withoutDigest = img.split('@')[0];
+    const slash = withoutDigest.lastIndexOf('/');
+    const colon = withoutDigest.indexOf(':', slash + 1);
+    const base = colon >= 0 ? withoutDigest.slice(0, colon) : withoutDigest;
+    return `${prefix}${base}:${tag}`;
+  });
+}
+
+function resourceMeta(yaml) {
+  const kind = (String(yaml).match(/^\s*kind:\s*([^\s#]+)/m) || [,''])[1];
+  const name = (String(yaml).match(/^\s*metadata:\s*\n[\s\S]*?^\s{2}name:\s*([^\s#]+)/m) || [,''])[1];
+  const namespace = (String(yaml).match(/^\s*metadata:\s*\n[\s\S]*?^\s{2}namespace:\s*([^\s#]+)/m) || [,''])[1];
+  return { kind: cleanYamlValue(kind), name: cleanYamlValue(name), namespace: cleanYamlValue(namespace) };
+}
+
+function resourceKey(yaml) {
+  const m = resourceMeta(yaml);
+  if(!m.kind || !m.name) return '';
+  return `${m.kind}/${m.namespace || '_cluster'}/${m.name}`;
+}
+
+function dedupeDocs(docs) {
+  const order = [];
+  const map = new Map();
+  for(const raw of docs) {
+    const doc = String(raw || '').trim();
+    if(!doc || !/^\s*apiVersion\s*:/m.test(doc) || !/^\s*kind\s*:/m.test(doc)) continue;
+    const key = resourceKey(doc) || `raw:${order.length}`;
+    if(!map.has(key)) order.push(key);
+    map.set(key, doc);
+  }
+  return order.map(k => map.get(k));
+}
+
+function countYamlResources(yaml) {
+  return splitYamlDocs(yaml).filter(d => /^\s*apiVersion\s*:/m.test(d) && /^\s*kind\s*:/m.test(d)).length;
+}
+
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ─── ArgoCD Application YAML Generator ────────────────────────────────────
+
+// Sync repo URL field when connection established
+function syncArgoRepoUrl() {
+  const url = document.getElementById('argo-repo-url');
+  if(url && !url.value) {
+    url.value = `${API_BASE()}/${NS()}/${REPO()}.git`;
+  }
+}
+
+function getSelectedArgoEnvs() {
+  return [...document.querySelectorAll('#argo-env-btns .env-tag.selected')].map(e=>e.dataset.aenv);
+}
+
+function buildArgoAppYaml(proj, env, repoUrl, cluster, argoNs, namespace) {
+  const appName = `${proj}-${env}`;
+  const overlayPath = `game_project/${proj}/game_project/overlays/${env}`;
+  const syncWave = env==='stage'?'1': env==='uat'?'2': env==='prod'?'3': '0';
+  return `apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${appName}
+  namespace: ${argoNs}
+  labels:
+    project: ${proj}
+    environment: ${env}
+  annotations:
+    argocd.argoproj.io/sync-wave: "${syncWave}"
+spec:
+  project: default
+  source:
+    repoURL: ${repoUrl}
+    targetRevision: main
+    path: ${overlayPath}
+    directory:
+      recurse: true
+  destination:
+    server: ${cluster}
+    namespace: ${namespace}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m`;
+}
+
+function buildArgoRocketMQYaml(proj, env, repoUrl, argoNs) {
+  const appName = `rocketmq-${proj}-${env}`;
+  const mqPath = `game_project/${proj}/RocketMQ/${env}`;
+  const mqNamespace = rocketMqNamespaceFor(proj, env);
+  return `apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${appName}
+  namespace: ${argoNs}
+  labels:
+    project: ${proj}
+    component: rocketmq
+    environment: ${env}
+spec:
+  project: default
+  source:
+    repoURL: ${repoUrl}
+    targetRevision: main
+    path: ${mqPath}
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${mqNamespace}
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true`;
+}
+
+function buildArgoRedisYaml(proj, env, repoUrl, cluster, argoNs, namespace) {
+  // Redis is deployed via Helm chart, so ArgoCD uses helm source type
+  const appName = `redis-cluster-${proj}-${env}`;
+  const valuesPath = `game_project/${proj}/redis-cluster/${env}/values.yaml`;
+  return `apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${appName}
+  namespace: ${argoNs}
+  labels:
+    project: ${proj}
+    component: redis
+    environment: ${env}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: ${repoUrl}
+    targetRevision: main
+    path: redis-cluster
+    helm:
+      releaseName: redis-cluster-${proj}
+      valueFiles:
+        - /${valuesPath}
+  destination:
+    server: ${cluster}
+    namespace: ${namespace}
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true`;
+}
+
+function updateArgoPreview() {
+  syncArgoRepoUrl();
+  const proj = document.getElementById('argo-project').value;
+  const argoNs = document.getElementById('argo-ns').value || 'argocd';
+  const repoUrl = document.getElementById('argo-repo-url').value || `${API_BASE()}/${NS()}/${REPO()}.git`;
+  const cluster = document.getElementById('argo-cluster').value || 'https://kubernetes.default.svc';
+  const envs = getSelectedArgoEnvs();
+  const previewEl = document.getElementById('argo-preview');
+
+  if(!proj || !envs.length) {
+    previewEl.textContent = '選擇專案和環境後自動產生...';
+    return;
+  }
+
+  const docs = [];
+  for(const env of envs) {
+    const namespace = namespaceFor(proj, env);
+    docs.push(`# --- [${env}] Game Services ---`);
+    docs.push(buildArgoAppYaml(proj, env, repoUrl, cluster, argoNs, namespace));
+    if(shouldExportRocketMq(env)) {
+      docs.push(`# --- [${env}] RocketMQ Topics ---`);
+      docs.push(buildArgoRocketMQYaml(proj, env, repoUrl, argoNs));
+    } else {
+      docs.push(`# --- [${env}] RocketMQ 使用共用 rocketmq namespace，略過建立 Application ---`);
+    }
+    docs.push(`# --- [${env}] Redis Cluster (Helm) ---`);
+    docs.push(buildArgoRedisYaml(proj, env, repoUrl, cluster, argoNs, namespace));
+  }
+
+  previewEl.textContent = docs.join('\n---\n');
+}
+
+function downloadArgoYaml() {
+  const proj = document.getElementById('argo-project').value;
+  if(!proj) { alert('請選擇專案'); return; }
+  syncArgoRepoUrl();
+
+  const argoNs = document.getElementById('argo-ns').value || 'argocd';
+  const repoUrl = document.getElementById('argo-repo-url').value || `${API_BASE()}/${NS()}/${REPO()}.git`;
+  const cluster = document.getElementById('argo-cluster').value || 'https://kubernetes.default.svc';
+  const envs = getSelectedArgoEnvs();
+
+  if(!envs.length) { alert('請至少選一個環境'); return; }
+
+  const header = `# ArgoCD Application YAML — ${proj}
+# Generated: ${new Date().toISOString().slice(0,19).replace('T',' ')}
+# 使用方式：
+#   kubectl apply -f ${proj}-argocd-apps.yaml -n ${argoNs}
+# 或在 ArgoCD UI > New App > Edit as YAML 貼入
+# ============================================================\n`;
+
+  const docs = [];
+  for(const env of envs) {
+    const namespace = namespaceFor(proj, env);
+    docs.push(buildArgoAppYaml(proj, env, repoUrl, cluster, argoNs, namespace));
+    if(shouldExportRocketMq(env)) docs.push(buildArgoRocketMQYaml(proj, env, repoUrl, argoNs));
+    docs.push(buildArgoRedisYaml(proj, env, repoUrl, cluster, argoNs, namespace));
+  }
+
+  download(`${proj}-argocd-apps.yaml`, header + docs.join('\n---\n') + '\n', 'application/x-yaml');
+}
+
+async function applyArgoYaml() {
+  const proj = document.getElementById('argo-project').value;
+  if(!proj) { alert('請選擇專案'); return; }
+  if(!glProjectNumId) { alert('請先測試 GitLab 連線'); return; }
+  syncArgoRepoUrl();
+
+  const argoNs = document.getElementById('argo-ns').value || 'argocd';
+  const repoUrl = document.getElementById('argo-repo-url').value || `${API_BASE()}/${NS()}/${REPO()}.git`;
+  const cluster = document.getElementById('argo-cluster').value || 'https://kubernetes.default.svc';
+  const envs = getSelectedArgoEnvs();
+
+  if(!envs.length) { alert('請至少選一個環境'); return; }
+
+  const btn = document.getElementById('btn-argo-apply');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 推送中...';
+
+  const resultEl = document.getElementById('argo-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = renderProgress('準備 ArgoCD Application YAML...', 30);
+
+  try {
+    const docs = [];
+    for(const env of envs) {
+      const suffix = env==='stage'?'stg': env==='uat'?'stage': env==='prod'?'prod': env==='gli'?'gli':'dev';
+      const namespace = `${proj}-${suffix}`;
+      docs.push(buildArgoAppYaml(proj, env, repoUrl, cluster, argoNs, namespace));
+      if(shouldExportRocketMq(env)) docs.push(buildArgoRocketMQYaml(proj, env, repoUrl, argoNs));
+      docs.push(buildArgoRedisYaml(proj, env, repoUrl, cluster, argoNs, namespace));
+    }
+
+    const yamlContent = docs.join('\n---\n') + '\n';
+    const filePath = `argocd/applications/${proj}-apps.yaml`;
+
+    resultEl.innerHTML = renderProgress(`推送到 ${filePath}...`, 60);
+
+    // Try update first, then create
+    let action = 'update';
+    try {
+      await getFileContent(filePath);
+    } catch(e) {
+      action = 'create';
+    }
+
+    await glFetch(`/projects/${glProjectNumId}/repository/commits`, {
+      method: 'POST',
+      body: JSON.stringify({
+        branch: 'main',
+        commit_message: `[argocd] Add Application manifests for ${proj} (${envs.join(',')})`,
+        actions: [{ action, file_path: filePath, content: yamlContent, encoding: 'text' }]
+      })
+    });
+
+    resultEl.innerHTML = renderSuccess(
+      `ArgoCD Application YAML 已推送到 <code>${filePath}</code><br>共 ${docs.length} 個 Application（stage 會略過共用 RocketMQ Application）`,
+      `${API_BASE()}/${NS()}/${REPO()}/-/blob/main/${filePath}`
+    );
+  } catch(e) {
+    resultEl.innerHTML = renderError(e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>直接 Push 到 GitLab argocd/ 目錄`;
+}
+</script>
+</body>
+</html>
